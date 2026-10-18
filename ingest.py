@@ -1,49 +1,44 @@
-import os, glob
-from pypdf import PdfReader
+import json
 import chromadb
 from sentence_transformers import SentenceTransformer
 from config import *
 
-def extract_pages(pdf_path):
-    reader = PdfReader(pdf_path)
-    return [(i + 1, page.extract_text() or "") for i, page in enumerate(reader.pages)]
-
-def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    chunks, start = [], 0
-    while start < len(text):
-        chunk = text[start:start + size]
-        if chunk.strip():
-            chunks.append(chunk)
-        start += size - overlap
-    return chunks
+def embed_text(p):
+    return (
+        f"{p['title']}. {p['description']} "
+        f"Skills: {', '.join(p['skills'])}. "
+        f"Domain: {p['domain']}. "
+        f"Tags: {', '.join(p['tags'])}."
+    )
 
 def ingest():
     client = chromadb.PersistentClient(path=CHROMA_DIR)
-    collection = client.get_or_create_collection(COLLECTION_NAME)
+    coll = client.get_or_create_collection(COLLECTION_NAME)
     model = SentenceTransformer(EMBED_MODEL)
 
-    pdfs = glob.glob(os.path.join(PDF_DIR, "*.pdf"))
-    print(f"Found {len(pdfs)} PDFs")
+    projects = json.load(open(PROJECTS_FILE, encoding="utf-8"))
+    print(f"Loaded {len(projects)} projects")
 
-    added = 0
-    for pdf in pdfs:
-        name = os.path.basename(pdf)
-        print(f"→ {name}")
-        for page_num, text in extract_pages(pdf):
-            if not text.strip():
-                continue
-            for i, chunk in enumerate(chunk_text(text)):
-                cid = f"{name}_p{page_num}_c{i}"
-                collection.upsert(
-                    ids=[cid],
-                    embeddings=[model.encode(chunk).tolist()],
-                    documents=[chunk],
-                    metadatas=[{"source": name, "page": page_num, "chunk_index": i}],
-                )
-                added += 1
+    for p in projects:
+        coll.upsert(
+            ids=[p["id"]],
+            embeddings=[model.encode(embed_text(p)).tolist()],
+            documents=[p["description"]],
+            metadatas=[{
+                "title": p["title"],
+                "domain": p["domain"],
+                "difficulty": p["difficulty"],
+                "skills": ",".join(p["skills"]),
+                "tech_stack": ",".join(p["tech_stack"]),
+                "estimated_weeks": p["estimated_weeks"],
+                "team_size": p["team_size"],
+                "source_url": p.get("source_url", ""),
+                "year": p.get("year", 0),
+            }],
+        )
+        print(f"  ✓ {p['id']}  {p['title']}")
 
-    print(f"\nDone. Upserted {added} chunks.")
-    print(f"Collection size: {collection.count()}")
+    print(f"\nCollection size: {coll.count()}")
 
 if __name__ == "__main__":
     ingest()
