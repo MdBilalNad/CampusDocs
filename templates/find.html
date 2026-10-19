@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mono mb-4">// STEP 01: DEFINE PROFILE</div>
+<h2>Configure your parameters.</h2>
+
+<form action="/projects" method="GET" style="display: grid; grid-template-columns: 2fr 1fr; gap: 4rem; margin-top: 3rem;">
+    
+    <!-- Left Side: The Advanced Filters -->
+    <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+        
+        <!-- Domain Chips -->
+        <div>
+            <label class="mono mb-4" style="display: block;">Domain</label>
+            <div class="chip-grid">
+                <label class="chip-label">
+                    <input type="radio" name="domain" value="Any" checked>
+                    <span class="chip">Any Domain</span>
+                </label>
+                {% for d in domains %}
+                <label class="chip-label">
+                    <input type="radio" name="domain" value="{{ d }}">
+                    <span class="chip">{{ d }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Difficulty Chips -->
+        <div>
+            <label class="mono mb-4" style="display: block;">Difficulty</label>
+            <div class="chip-grid">
+                <label class="chip-label">
+                    <input type="radio" name="difficulty" value="Any" checked>
+                    <span class="chip">Any</span>
+                </label>
+                <label class="chip-label">
+                    <input type="radio" name="difficulty" value="Beginner">
+                    <span class="chip">Beginner</span>
+                </label>
+                <label class="chip-label">
+                    <input type="radio" name="difficulty" value="Intermediate">
+                    <span class="chip">Intermediate</span>
+                </label>
+                <label class="chip-label">
+                    <input type="radio" name="difficulty" value="Advanced">
+                    <span class="chip">Advanced</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Estimated Time Chips -->
+        <div>
+            <label class="mono mb-4" style="display: block;">Estimated Time</label>
+            <div class="chip-grid">
+                <label class="chip-label">
+                    <input type="radio" name="time" value="Any" checked>
+                    <span class="chip">Any</span>
+                </label>
+                {% for t in times %}
+                <label class="chip-label">
+                    <input type="radio" name="time" value="{{ t }}">
+                    <span class="chip">{{ t }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tech Search & Toggle -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: end;">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Specific Tech Search</label>
+                <input type="text" name="tech" class="input" placeholder="e.g. Flask, PyTorch, ESP32">
+            </div>
+            <div class="input-group" style="margin-bottom: 0; padding-bottom: 0.5rem;">
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" name="python_friendly" value="true" class="custom-checkbox">
+                    <span class="checkbox-label-text">Only Python-Friendly</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Show matching projects</button>
+        </div>
+    </div>
+
+    <!-- Right Side: Live Count Card -->
+    <div>
+        <div class="glass-card" style="position: sticky; top: 6rem;">
+            <div class="mono mb-4">Live Matches</div>
+            <div id="live-count" style="font-size: 4rem; font-family: var(--font-serif); line-height: 1;">1200</div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">projects match your current parameters.</p>
+        </div>
+    </div>
+    
+</form>
+{% endblock %}
