@@ -36,8 +36,7 @@ def ingest():
                 "year": p.get("year", 0),
             }],
         )
-        print(f"  ✓ {p['id']}  {p['title']}")
-
+    
     print(f"\nCollection size: {coll.count()}")
 
 if __name__ == "__main__":
