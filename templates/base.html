@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Finder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container nav-inner">
+            <a href="/" class="logo">ProjectFinder</a>
+            <a href="/find" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Start Search</a>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 4rem; padding-bottom: 6rem;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
