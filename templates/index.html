@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 800px;">
+    <div class="mono mb-4 stagger-1" style="animation: pageFadeIn 0.5s 0.1s forwards; opacity: 0;">// THE CSE PROJECT INDEX</div>
+    <h1 class="stagger-2" style="animation: pageFadeIn 0.5s 0.2s forwards; opacity: 0;">Find the project<br>you actually want to build.</h1>
+    <p class="stagger-3" style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 2rem; animation: pageFadeIn 0.5s 0.3s forwards; opacity: 0;">
+        A meticulously curated index of computer science projects. Filter by domain, skill, and difficulty to find your perfect final-year match.
+    </p>
+    <div class="stagger-4" style="animation: pageFadeIn 0.5s 0.4s forwards; opacity: 0;">
+        <a href="/find" class="btn btn-primary">Find my project</a>
+    </div>
+</div>
+
+<div class="glass-card mt-8 stagger-5" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; max-width: 800px; animation: pageFadeIn 0.5s 0.5s forwards; opacity: 0;">
+    <div>
+        <div class="mono">Projects Indexed</div>
+        <div class="glow-text" style="font-family: var(--font-mono); font-size: 2rem; color: var(--text-main);">{{ total }}</div>
+    </div>
+    <div>
+        <div class="mono">Domains Covered</div>
+        <div class="glow-text" style="font-family: var(--font-mono); font-size: 2rem; color: var(--text-main);">{{ domains }}</div>
+    </div>
+    <div>
+        <div class="mono">Built for</div>
+        <div class="glow-text" style="font-family: var(--font-mono); font-size: 2rem; color: var(--text-main);">CSE</div>
+    </div>
+</div>
+{% endblock %}
