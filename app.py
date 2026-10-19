@@ -1,189 +1,117 @@
-import streamlit as st
-from rag import recommend
+import json
+import os
+import re
+from flask import Flask, render_template, request, jsonify, abort
 
-st.set_page_config(
-    page_title="ProjectFinder",
-    page_icon="🎯",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+app = Flask(__name__)
 
-# --- Dark Mode Custom CSS ---
-st.markdown("""
-<style>
-/* Layout */
-.block-container {
-    max-width: 1100px;
-    padding-top: 3rem;
-    padding-bottom: 4rem;
-}
-/* Typography */
-h1 { font-weight: 600 !important; letter-spacing: -0.03em !important; font-size: 2rem !important; color: #ffffff !important; }
-h2 { font-weight: 500 !important; letter-spacing: -0.02em !important; color: #ffffff !important; }
-p, label { font-size: 0.95rem !important; }
+# --- LOAD DATA ---
+DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'cse_projects_enhanced.json')
+with open(DATA_FILE, 'r', encoding='utf-8') as f:
+    RAW_DATA = json.load(f)
 
-/* Result Card Styling */
-.result-card {
-    border-top: 1px solid #30363d;
-    padding-top: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-.result-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 0.2rem;
-}
-.result-meta {
-    font-size: 0.85rem;
-    color: #8b949e;
-    margin-bottom: 0.8rem;
-}
-.result-reason {
-    font-size: 0.95rem;
-    color: #c9d1d9;
-    line-height: 1.5;
-    margin-bottom: 1rem;
-}
-.tag {
-    background: #21262d;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    color: #c9d1d9;
-    margin-right: 0.4rem;
-    margin-bottom: 0.4rem;
-    display: inline-block;
-    border: 1px solid #30363d;
-}
-.score {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #ffffff;
-    background: #238636; /* GitHub green for match score */
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid #2ea043;
-}
-/* --- Fix Multiselect Chips (Skills) --- */
-[data-testid="stSidebar"] span[data-baseweb="tag"] {
-    background-color: #21262d !important;
-    border: 1px solid #30363d !important;
-    color: #c9d1d9 !important;
-}
-[data-testid="stSidebar"] span[data-baseweb="tag"] span {
-    color: #c9d1d9 !important;
-}
-[data-testid="stSidebar"] span[data-baseweb="tag"] svg {
-    fill: #c9d1d9 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+ALL_PROJECTS = []
+DOMAINS_MAP = {}
+ALL_LANGUAGES = set()
+ALL_TIMES = set()
 
-# ---------------- Sidebar ----------------
-with st.sidebar:
-    st.markdown("### Profile")
-    interests = st.text_area(
-        "Interests",
-        placeholder="e.g. NLP, chatbots, retrieval systems",
-        height=100,
-    )
-    skills = st.multiselect(
-        "Skills",
-        ["Python", "JavaScript", "React", "Node.js", "PyTorch", "TensorFlow",
-         "OpenCV", "Flask", "FastAPI", "SQL", "MongoDB", "AWS", "Solidity",
-         "Go", "Java", "C++", "Android", "Flutter", "Arduino"],
-    )
-
-    st.divider()
-    st.markdown("### Constraints")
-    domain = st.selectbox(
-        "Domain",
-        ["Any", "NLP", "Computer Vision", "Web Development",
-         "Machine Learning", "Blockchain", "IoT", "Security", "Systems"],
-    )
-    difficulty = st.selectbox(
-        "Difficulty",
-        ["Any", "easy", "medium", "hard"],
-    )
-    weeks = st.slider("Weeks available", 4, 16, 8)
-    team_size = st.slider("Team size", 1, 4, 2)
-
-    st.divider()
-    st.markdown("### Preferences")
-    top_k = st.slider("Number of results", 3, 10, 5)
-    strict_skill = st.toggle("Strict skill matching", value=False)
-
-    st.divider()
-    go = st.button("Find projects", use_container_width=True, type="primary")
-    reset = st.button("Reset", use_container_width=True)
-
-if reset:
-    for k in list(st.session_state.keys()):
-        del st.session_state[k]
-    st.rerun()
-
-# ---------------- Main ----------------
-st.title("ProjectFinder")
-st.markdown(
-    "A retrieval-based recommender for B.Tech CSE final-year projects. "
-    "Describe your interests and constraints; results are ranked against a catalog of past projects."
-)
-st.write("") # spacer
-
-if go:
-    profile = {
-        "interests": interests,
-        "skills": skills,
-        "domain": domain,
-        "difficulty": difficulty,
-        "team_size": team_size,
-        "weeks": weeks,
-        "max_weeks": weeks + 2,
+for domain_obj in RAW_DATA.get("domains", []):
+    domain_name = domain_obj["domain"]
+    domain_slug = re.sub(r'[^a-z0-9]+', '-', domain_name.lower()).strip('-')
+    DOMAINS_MAP[domain_slug] = {
+        "name": domain_name,
+        "broad_tech_stack": domain_obj.get("broad_tech_stack", {})
     }
+    
+    for p in domain_obj.get("projects", []):
+        p["domain"] = domain_name
+        p["domain_slug"] = domain_slug
+        ALL_PROJECTS.append(p)
+        
+        for lang in p.get("languages", []):
+            ALL_LANGUAGES.add(lang)
+        if p.get("estimated_time"):
+            ALL_TIMES.add(p["estimated_time"])
 
-    with st.spinner("Ranking candidates..."):
-        results = recommend(profile, strict_skill=strict_skill, top_k=top_k)
+ALL_LANGUAGES = sorted(list(ALL_LANGUAGES))
+ALL_TIMES = sorted(list(ALL_TIMES), key=lambda x: int(x.split('-')[0]))
+DOMAIN_LIST = sorted([v["name"] for k, v in DOMAINS_MAP.items()])
 
-    # Active-filter summary
-    parts = []
-    if domain != "Any": parts.append(f"domain = {domain}")
-    if difficulty != "Any": parts.append(f"difficulty = {difficulty}")
-    if skills: parts.append(f"skills = {', '.join(skills)}")
-    if strict_skill: parts.append("strict skills")
-    parts.append(f"top {top_k}")
+# --- FILTERING LOGIC ---
+def filter_projects(filters):
+    results = ALL_PROJECTS
+    
+    if filters.get("domain") and filters["domain"] != "Any":
+        results = [p for p in results if p["domain"] == filters["domain"]]
+        
+    if filters.get("difficulty") and filters["difficulty"] != "Any":
+        results = [p for p in results if p["difficulty"] == filters["difficulty"]]
+        
+    if filters.get("language") and filters["language"] != "Any":
+        results = [p for p in results if filters["language"] in p.get("languages", [])]
+        
+    if filters.get("time") and filters["time"] != "Any":
+        results = [p for p in results if p.get("estimated_time") == filters["time"]]
+        
+    if filters.get("python_friendly") == "true":
+        results = [p for p in results if p.get("python_friendly") == True]
+        
+    if filters.get("tech"):
+        q = filters["tech"].lower()
+        results = [p for p in results if any(q in t.lower() for t in p.get("tech_stack", []))]
+        
+    return sorted(results, key=lambda x: x["title"])
 
-    st.divider()
-    st.caption(" · ".join(parts))
+# --- ROUTES ---
+@app.route('/')
+def index():
+    return render_template('index.html', total=len(ALL_PROJECTS), domains=len(DOMAIN_LIST))
 
-    if not results:
-        st.warning("No matches. Try widening your filters or disabling strict skill matching.")
-    else:
-        for r in results:
-            # Build HTML chunks
-            tags_html = "".join(f'<span class="tag">{s}</span>' for s in r["skills"])
-            stack_html = "".join(f'<span class="tag">{s}</span>' for s in r["tech_stack"])
-            src_html = f'<br><br><a href="{r["source_url"]}" target="_blank" style="color: #58a6ff;">View source ↗</a>' if r.get("source_url") else ""
+@app.route('/find')
+def find():
+    return render_template(
+        'find.html', 
+        domains=DOMAIN_LIST, 
+        times=ALL_TIMES
+    )
 
-            # Render the card
-            with st.container():
-                col1, col2 = st.columns([5, 1])
-                with col1:
-                    st.markdown(f'<div class="result-title">{r["title"]}</div>', unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f'<div style="text-align: right;"><span class="score">{r["score"]}/100</span></div>', unsafe_allow_html=True)
-                
-                st.markdown(
-                    f'<div class="result-meta">{r["domain"]} · {r["difficulty"]} · {r["estimated_weeks"]} weeks · Team of {r["team_size"]}</div>', 
-                    unsafe_allow_html=True
-                )
-                st.markdown(f'<div class="result-reason">{r["reason"]}</div>', unsafe_allow_html=True)
-                st.markdown(f'**Skills:** {tags_html}', unsafe_allow_html=True)
-                st.markdown(f'**Stack:** {stack_html}', unsafe_allow_html=True)
-                if src_html:
-                    st.markdown(src_html, unsafe_allow_html=True)
-            
-            st.markdown('<div class="result-card"></div>', unsafe_allow_html=True)
+@app.route('/projects')
+def projects():
+    filters = {
+        "domain": request.args.get("domain", "Any"),
+        "difficulty": request.args.get("difficulty", "Any"),
+        "language": request.args.get("language", "Any"),
+        "time": request.args.get("time", "Any"),
+        "python_friendly": request.args.get("python_friendly", "false"),
+        "tech": request.args.get("tech", ""),
+    }
+    results = filter_projects(filters)
+    return render_template('project.html', projects=results, filters=filters)
 
-else:
-    st.info("👈 Fill in your profile in the sidebar and click **Find projects** to begin.")
+@app.route('/api/count')
+def api_count():
+    filters = {
+        "domain": request.args.get("domain", "Any"),
+        "difficulty": request.args.get("difficulty", "Any"),
+        "language": request.args.get("language", "Any"),
+        "time": request.args.get("time", "Any"),
+        "python_friendly": request.args.get("python_friendly", "false"),
+        "tech": request.args.get("tech", ""),
+    }
+    return jsonify({"count": len(filter_projects(filters))})
+
+@app.route('/api/project/<domain_slug>/<id>')
+def api_project(domain_slug, id):
+    project = next((p for p in ALL_PROJECTS if p["domain_slug"] == domain_slug and str(p["id"]) == id), None)
+    if not project: abort(404)
+    return jsonify({
+        "project": project,
+        "broad_tech_stack": DOMAINS_MAP.get(domain_slug, {}).get("broad_tech_stack", {})
+    })
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
