@@ -4,3 +4,5 @@ sentence-transformers
 pypdf
 groq
 python-dotenv
+gunicorn
+Flask
