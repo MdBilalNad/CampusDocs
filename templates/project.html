@@ -14,8 +14,7 @@
 {% else %}
 <div class="project-grid">
     {% for p in projects %}
-    <!-- Apply stagger class if it's within the first 8 items, otherwise no delay -->
-    <div class="glass-card project-card {% if loop.index <= 8 %}stagger-{{ loop.index }}{% endif %}" data-domain="{{ p.domain_slug }}" data-id="{{ p.id }}">
+    <div class="glass-card project-card" data-domain="{{ p.domain_slug }}" data-id="{{ p.id }}">
         <div class="mono mb-4" style="display: flex; justify-content: space-between;">
             <span>{{ p.difficulty | upper }}</span>
             <span>{{ p.estimated_time | upper }}</span>
@@ -34,7 +33,7 @@
 
 <!-- Side Panel -->
 <div class="panel-overlay" id="overlay" onclick="closePanel()"></div>
-<div class="panel" id="panel">
+<div class="side-panel" id="panel">
     <button class="close-btn" onclick="closePanel()">✕</button>
     <div id="panel-content">
         <!-- Injected via JS -->

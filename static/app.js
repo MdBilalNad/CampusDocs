@@ -12,17 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`/api/count?${params.toString()}`);
                 const data = await res.json();
                 
-                // Premium micro-interaction: scale down, swap text, scale up
-                countDisplay.style.transition = 'transform 0.15s ease, opacity 0.15s ease';
-                countDisplay.style.transform = 'scale(0.9)';
                 countDisplay.style.opacity = '0.5';
-                
                 setTimeout(() => {
                     countDisplay.innerText = data.count;
-                    countDisplay.style.transform = 'scale(1)';
                     countDisplay.style.opacity = '1';
                 }, 150);
-
             } catch (e) {
                 console.error("Error fetching count", e);
             }
@@ -32,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.addEventListener('input', updateCount);
             el.addEventListener('change', updateCount);
         });
-        
         updateCount();
     }
 
@@ -89,29 +82,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${broadStackHtml}
                         </div>
                     `;
-                    
-                    // Fade in the loaded content
-                    panelContent.style.opacity = '0';
-                    panelContent.style.transition = 'opacity 0.3s';
-                    setTimeout(() => { panelContent.style.opacity = '1'; }, 50);
-
                 } catch (e) {
                     panelContent.innerHTML = '<p style="color: red;">Error loading project.</p>';
                 }
             });
         });
 
-        const closePanel = () => {
+        window.closePanel = () => {
             overlay.classList.remove('open');
             panel.classList.remove('open');
-            // Clear content after transition ends to prevent ghosting
-            setTimeout(() => { panelContent.innerHTML = ''; }, 400);
         };
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closePanel();
+            if (e.key === 'Escape') window.closePanel();
         });
-        
-        overlay.addEventListener('click', closePanel);
+        overlay.addEventListener('click', window.closePanel);
     }
 });
